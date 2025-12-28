@@ -3,42 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SNAKE PRO | Joystick & Wall</title>
+    <title>SNAKE ROYAL | القائمة الرئيسية</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; font-family: 'Arial', sans-serif; }
         canvas { display: block; }
-        #joystick-container {
-            position: fixed; bottom: 40px; left: 40px; width: 120px; height: 120px;
-            background: rgba(255, 255, 255, 0.1); border-radius: 50%; z-index: 2000;
-            display: none; border: 2px solid rgba(255,255,255,0.3);
-        }
-        #joystick-knob {
-            position: absolute; top: 35px; left: 35px; width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.5); border-radius: 50%;
-        }
-        .leaderboard { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 8px; font-family: sans-serif; border: 1px solid #f00; z-index: 100; pointer-events: none; }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; color: white; }
-        .start-btn { padding: 15px 40px; background: #f00; color: #fff; border: none; border-radius: 30px; font-size: 1.5rem; font-weight: bold; cursor: pointer; }
+        
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; color: white; text-align: center; }
+        #game-over-screen { display: none; background: rgba(30, 0, 0, 0.98); }
+        
+        .btn { padding: 14px 40px; margin: 8px; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.3s; width: 220px; text-decoration: none; display: inline-block; }
+        .btn-play { background: #00ff41; color: #000; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
+        .btn-play:hover { transform: scale(1.05); box-shadow: 0 0 30px #00ff41; }
+        .btn-games { background: #007bff; color: white; box-shadow: 0 0 15px rgba(0,123,255,0.4); }
+        .btn-exit { background: #333; color: white; border: 1px solid #555; }
+        
+        input#username { padding: 12px; border-radius: 10px; border: 2px solid #333; margin-bottom: 20px; width: 240px; text-align: center; font-size: 1.1rem; background: #111; color: white; }
+        .leaderboard { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 8px; border: 1px solid #f00; z-index: 100; min-width: 120px; font-size: 14px; }
+        #joystick-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); display: none; z-index: 2000; }
+        #joystick-knob { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.4); border-radius: 50%; }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h1>SNAKE : JOYSTICK MODE</h1>
-        <button class="start-btn" onclick="initGame()">ابدأ المعركة 🐍</button>
+    <div id="start-screen" class="overlay">
+        <h1 style="color: #00ff41; font-size: 3rem; margin-bottom: 5px;">SNAKE ROYAL</h1>
+        <p style="color: #888; margin-bottom: 25px;">أهلاً بك في ساحة المعركة</p>
+        
+        <input type="text" id="username" placeholder="اكتب اسمك هنا..." maxlength="12">
+        
+        <button class="btn btn-play" onclick="initGame()">ابدأ اللعب ⚔️</button>
+        <a href="index.html" class="btn btn-games">قائمة الألعاب GAMES 🎮</a>
+    </div>
+
+    <div id="game-over-screen" class="overlay">
+        <h1 style="color: #ff0000; font-size: 3.5rem;">انتهت اللعبة!</h1>
+        <p id="final-score" style="font-size: 1.6rem; margin-bottom: 25px;">نقاطك: 0</p>
+        
+        <button class="btn btn-play" onclick="restartGame()">إعادة اللعب 🔄</button>
+        <button class="btn btn-exit" onclick="backToMain()">القائمة الرئيسية 🏠</button>
     </div>
 
     <div class="leaderboard" id="leaderboard"></div>
-
-    <div id="joystick-container">
-        <div id="joystick-knob"></div>
-    </div>
-
+    <div id="joystick-container"><div id="joystick-knob"></div></div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
+        // --- إعدادات فايربيس ---
         const firebaseConfig = {
             apiKey: "AIzaSyC_O3VFAZW3OZGrxxk2yK58Avgj-8WVs-M",
             authDomain: "alhelwyn.firebaseapp.com",
@@ -51,12 +63,12 @@
         const WORLD_SIZE = 3000;
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let viewX = 0, viewY = 0;
+        let viewX = 0, viewY = 0, myId = "", gameActive = false;
+        let players = {}, foods = {};
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let myId = "", players = {}, foods = {};
         let mySnake = {
             x: WORLD_SIZE/2, y: WORLD_SIZE/2,
             body: [], angle: 0, score: 0,
@@ -64,156 +76,138 @@
             name: "لاعب"
         };
 
-        // إعدادات الـ Joystick
-        const joyContainer = document.getElementById('joystick-container');
-        const joyKnob = document.getElementById('joystick-knob');
-        let isTouching = false;
-
         function initGame() {
-            document.getElementById('overlay').style.display = 'none';
-            if ('ontouchstart' in window) joyContainer.style.display = 'block';
+            const nameInput = document.getElementById('username').value;
+            mySnake.name = nameInput || "حلو";
+            mySnake.score = 0;
+            mySnake.body = [];
+            mySnake.x = WORLD_SIZE/2;
+            mySnake.y = WORLD_SIZE/2;
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            if ('ontouchstart' in window) document.getElementById('joystick-container').style.display = 'block';
             
-            const ref = db.ref('final_arena').push();
+            const ref = db.ref('royal_arena').push();
             myId = ref.key;
+            gameActive = true;
             
-            setInterval(gameLoop, 1000/60);
-            db.ref('final_arena').on('value', s => players = s.val() || {});
-            db.ref('final_foods').on('value', s => {
-                foods = s.val() || {};
-                if (Object.keys(foods).length < 50) spawnFood(25);
-            });
+            if (!window.gameInterval) window.gameInterval = setInterval(gameLoop, 1000/60);
+            
+            db.ref('royal_arena').on('value', s => players = s.val() || {});
+            db.ref('royal_foods').on('value', s => foods = s.val() || {});
         }
-
-        // --- منطق عصا التحكم ---
-        joyContainer.addEventListener('touchstart', (e) => { isTouching = true; });
-        window.addEventListener('touchmove', (e) => {
-            if (!isTouching) return;
-            const touch = e.touches[0];
-            const rect = joyContainer.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            const dx = touch.clientX - centerX;
-            const dy = touch.clientY - centerY;
-            const dist = Math.min(Math.hypot(dx, dy), 50);
-            const angle = Math.atan2(dy, dx);
-            
-            joyKnob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
-            mySnake.angle = angle;
-        }, { passive: false });
-
-        window.addEventListener('touchend', () => {
-            isTouching = false;
-            joyKnob.style.transform = `translate(0px, 0px)`;
-        });
-
-        // تحكم الماوس للكمبيوتر
-        window.onmousemove = (e) => {
-            if (!isTouching) {
-                const dx = e.clientX - canvas.width / 2;
-                const dy = e.clientY - canvas.height / 2;
-                mySnake.angle = Math.atan2(dy, dx);
-            }
-        };
 
         function spawnFood(n) {
             for(let i=0; i<n; i++) {
-                db.ref('final_foods').push({
-                    x: Math.random() * WORLD_SIZE,
-                    y: Math.random() * WORLD_SIZE,
-                    c: `hsl(${Math.random() * 360}, 100%, 50%)`
+                db.ref('royal_foods').push({
+                    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
+                    c: `hsl(${Math.random() * 360}, 100%, 50%)`, v: 5
                 });
             }
         }
 
+        // --- نظام التحكم ---
+        let joyTouching = false;
+        const joyKnob = document.getElementById('joystick-knob');
+        window.addEventListener('touchmove', (e) => {
+            const rect = document.getElementById('joystick-container').getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dx = e.touches[0].clientX - centerX;
+            const dy = e.touches[0].clientY - centerY;
+            const dist = Math.min(Math.hypot(dx, dy), 40);
+            const angle = Math.atan2(dy, dx);
+            joyKnob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+            mySnake.angle = angle;
+            joyTouching = true;
+        }, {passive: false});
+        window.addEventListener('touchend', () => { joyTouching = false; joyKnob.style.transform = "translate(0,0)"; });
+        window.onmousemove = (e) => { if(!joyTouching) mySnake.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2); };
+
         function gameLoop() {
-            if(!myId) return;
+            if(!myId || !gameActive) return;
+            mySnake.x += Math.cos(mySnake.angle) * 4.5;
+            mySnake.y += Math.sin(mySnake.angle) * 4.5;
 
-            const speed = 4.5;
-            mySnake.x += Math.cos(mySnake.angle) * speed;
-            mySnake.y += Math.sin(mySnake.angle) * speed;
-
-            // --- كشف تصادم الحائط الصارم ---
-            const headRadius = 15;
-            if (mySnake.x < headRadius || mySnake.x > WORLD_SIZE - headRadius || 
-                mySnake.y < headRadius || mySnake.y > WORLD_SIZE - headRadius) {
-                die();
-                return;
+            // الموت عند الجدار
+            if (mySnake.x < 15 || mySnake.x > WORLD_SIZE-15 || mySnake.y < 15 || mySnake.y > WORLD_SIZE-15) {
+                die(); return;
             }
 
             mySnake.body.unshift({x: mySnake.x, y: mySnake.y});
-            if(mySnake.body.length > 20 + (mySnake.score / 5)) mySnake.body.pop();
+            if(mySnake.body.length > 20 + (mySnake.score/5)) mySnake.body.pop();
 
             viewX = mySnake.x - canvas.width / 2;
             viewY = mySnake.y - canvas.height / 2;
 
             for(let id in foods) {
                 if(Math.hypot(mySnake.x - foods[id].x, mySnake.y - foods[id].y) < 25) {
-                    mySnake.score += 5;
-                    db.ref('final_foods/'+id).remove();
+                    mySnake.score += foods[id].v || 5;
+                    db.ref('royal_foods/'+id).remove();
                 }
             }
-
-            db.ref('final_arena/'+myId).set(mySnake);
+            if (Object.keys(foods).length < 50) spawnFood(20);
+            db.ref('royal_arena/'+myId).set(mySnake);
             draw();
         }
 
         function die() {
-            db.ref('final_arena/'+myId).remove();
-            alert("لقد لمست الحائط الاحمر! حاول مرة اخرى");
-            location.reload();
+            gameActive = false;
+            mySnake.body.forEach((p, i) => {
+                if(i % 3 === 0) db.ref('royal_foods').push({ x: p.x, y: p.y, c: mySnake.color, v: 15 });
+            });
+            db.ref('royal_arena/'+myId).remove();
+            document.getElementById('final-score').innerText = "نقاطك: " + Math.floor(mySnake.score);
+            document.getElementById('game-over-screen').style.display = 'flex';
+        }
+
+        function restartGame() { initGame(); }
+        
+        function backToMain() {
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('joystick-container').style.display = 'none';
+            gameActive = false;
+            myId = "";
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(-viewX, -viewY);
-
-            // جدار الموت الأحمر
-            ctx.strokeStyle = "#ff0000";
-            ctx.lineWidth = 20;
+            // رسم الحدود
+            ctx.strokeStyle = "red"; ctx.lineWidth = 20;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-
             // رسم الطعام
             for(let id in foods) {
                 ctx.fillStyle = foods[id].c;
-                ctx.beginPath(); ctx.arc(foods[id].x, foods[id].y, 6, 0, 7); ctx.fill();
+                let size = (foods[id].v > 5) ? 10 : 5;
+                ctx.beginPath(); ctx.arc(foods[id].x, foods[id].y, size, 0, 7); ctx.fill();
             }
-
             // رسم اللاعبين
             for(let id in players) {
                 const p = players[id];
                 if(!p.body || p.body.length < 2) continue;
                 const thick = 12 + (p.score/60);
-                
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = thick * 2;
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
-
+                ctx.strokeStyle = p.color; ctx.lineWidth = thick*2; ctx.lineCap="round";
                 ctx.beginPath();
                 ctx.moveTo(p.body[0].x, p.body[0].y);
                 for(let i=1; i<p.body.length; i++) ctx.lineTo(p.body[i].x, p.body[i].y);
                 ctx.stroke();
-
                 // الرأس
                 ctx.save();
-                ctx.translate(p.body[0].x, p.body[0].y);
-                ctx.rotate(p.angle);
+                ctx.translate(p.body[0].x, p.body[0].y); ctx.rotate(p.angle);
                 ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.ellipse(0, 0, thick*1.5, thick*1.2, 0, 0, 7); ctx.fill();
-                ctx.fillStyle = "white";
-                ctx.beginPath(); ctx.arc(thick*0.7, -thick*0.4, thick*0.3, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(0, 0, thick*1.4, thick*1.1, 0, 0, 7); ctx.fill();
+                ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(thick*0.7, -thick*0.4, thick*0.3, 0, 7); ctx.fill();
                 ctx.beginPath(); ctx.arc(thick*0.7, thick*0.4, thick*0.3, 0, 7); ctx.fill();
                 ctx.restore();
             }
-
             ctx.restore();
             let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
-            document.getElementById('leaderboard').innerHTML = sorted.map(p => `<div>${p.name}: ${p.score}</div>`).join('');
+            document.getElementById('leaderboard').innerHTML = sorted.map(p => `<div>${p.name}: ${Math.floor(p.score)}</div>`).join('');
         }
-
-        window.onbeforeunload = () => { if(myId) db.ref('final_arena/'+myId).remove(); };
     </script>
 </body>
 </html>
