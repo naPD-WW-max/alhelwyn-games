@@ -3,43 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SNAKE ROYAL | المعركة الكبرى</title>
+    <title>SNAKE.IO | نسخة متوازنة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; font-family: 'Arial', sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #050505; touch-action: none; font-family: 'Arial', sans-serif; }
         canvas { display: block; }
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; color: white; text-align: center; }
-        #game-over-screen { display: none; background: rgba(30, 0, 0, 0.98); }
-        .btn { padding: 14px 40px; margin: 8px; border: none; border-radius: 50px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.3s; width: 220px; text-decoration: none; display: inline-block; }
-        .btn-play { background: #00ff41; color: #000; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
-        .btn-games { background: #007bff; color: white; } /* زر قائمة الألعاب */
-        .btn-exit { background: #333; color: white; border: 1px solid #555; }
-        input#username { padding: 12px; border-radius: 10px; border: 2px solid #333; margin-bottom: 20px; width: 240px; text-align: center; font-size: 1.1rem; background: #111; color: white; }
-        .leaderboard { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 8px; border: 1px solid #f00; z-index: 100; min-width: 120px; font-size: 14px; }
-        #joystick-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); display: none; z-index: 2000; }
-        #joystick-knob { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.4); border-radius: 50%; }
+        .ui-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.9); color: white; text-align: center; }
+        .btn { padding: 15px 50px; margin: 10px; border: none; border-radius: 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer; width: 240px; }
+        .btn-start { background: #00e676; color: black; box-shadow: 0 0 20px #00e676; }
+        input#username { padding: 15px; border-radius: 30px; border: 2px solid #444; background: #111; color: white; width: 240px; text-align: center; margin-bottom: 20px; outline: none; }
+        .leaderboard { position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 12px; border-radius: 10px; color: white; min-width: 150px; pointer-events: none; font-size: 14px; border-right: 4px solid #00e676; }
+        #joy-base { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; display: none; }
+        #joy-stick { position: absolute; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen" class="overlay">
-        <h1 style="color: #00ff41; font-size: 3rem; margin-bottom: 5px;">SNAKE ROYAL</h1>
-        <input type="text" id="username" placeholder="اسم الثعبان..." maxlength="12">
-        <button class="btn btn-play" onclick="initGame()">دخول الساحة ⚔️</button>
-        <a href="games.html" class="btn btn-games">قائمة الألعاب GAMES 🎮</a>
+    <div id="start-screen" class="ui-screen">
+        <h1 style="color: #00e676;">سنيك رويال</h1>
+        <input type="text" id="username" placeholder="اسم الثعبان..." maxlength="10">
+        <button class="btn btn-start" onclick="startGame()">العب الآن</button>
     </div>
 
-    <div id="game-over-screen" class="overlay">
-        <h1 style="color: #ff0000; font-size: 3.5rem;">لقد هزمت!</h1>
-        <p id="final-score" style="font-size: 1.6rem; margin-bottom: 25px;">نقاطك: 0</p>
-        <button class="btn btn-play" onclick="restartGame()">إعادة المحاولة 🔄</button>
-        <a href="games.html" class="btn btn-exit">القائمة الرئيسية 🏠</a>
+    <div id="death-screen" class="ui-screen" style="display: none;">
+        <h2 style="color: #ff1744;">تحطمت!</h2>
+        <p id="score-text">0</p>
+        <button class="btn btn-start" onclick="startGame()">إعادة محاولة</button>
     </div>
 
     <div class="leaderboard" id="leaderboard"></div>
-    <div id="joystick-container"><div id="joystick-knob"></div></div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="joy-base"><div id="joy-stick"></div></div>
+    <canvas id="ctx"></canvas>
 
     <script>
         const firebaseConfig = {
@@ -51,154 +46,155 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const WORLD_SIZE = 3000;
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let viewX = 0, viewY = 0, myId = "", gameActive = false;
-        let players = {}, foods = {};
+        const canvas = document.getElementById('ctx');
+        const gl = canvas.getContext('2d');
+        const WORLD = 5000;
+        let myId = "", players = {}, foods = {}, isLive = false, isBoosting = false;
+        
+        let me = { x: WORLD/2, y: WORLD/2, angle: 0, score: 0, body: [], color: `hsl(${Math.random()*360}, 80%, 60%)`, name: "" };
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize; resize();
 
-        let mySnake = {
-            x: WORLD_SIZE/2, y: WORLD_SIZE/2,
-            body: [], angle: 0, score: 0,
-            color: `hsl(${Math.random() * 360}, 80%, 60%)`,
-            name: "لاعب"
-        };
-
-        function initGame() {
-            const nameInput = document.getElementById('username').value;
-            mySnake.name = nameInput || "لاعب";
-            mySnake.score = 0;
-            mySnake.body = [];
-            mySnake.x = Math.random() * (WORLD_SIZE - 200) + 100;
-            mySnake.y = Math.random() * (WORLD_SIZE - 200) + 100;
-
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('game-over-screen').style.display = 'none';
-            if ('ontouchstart' in window) document.getElementById('joystick-container').style.display = 'block';
+        function startGame() {
+            me.name = document.getElementById('username').value || "لاعب";
+            me.score = 0; me.body = [];
+            me.x = Math.random() * (WORLD - 1000) + 500;
+            me.y = Math.random() * (WORLD - 1000) + 500;
+            document.querySelectorAll('.ui-screen').forEach(s => s.style.display = 'none');
+            if ('ontouchstart' in window) document.getElementById('joy-base').style.display = 'block';
             
-            const ref = db.ref('battle_arena').push();
+            const ref = db.ref('v_final_fixed').push();
             myId = ref.key;
+            db.ref('v_final_fixed/' + myId).onDisconnect().remove();
+            isLive = true;
             
-            // سحر فايربيس: حذف الثعبان تلقائياً عند إغلاق المتصفح أو الخروج
-            db.ref('battle_arena/' + myId).onDisconnect().remove();
-
-            gameActive = true;
-            if (!window.gameInterval) window.gameInterval = setInterval(gameLoop, 1000/60);
-            db.ref('battle_arena').on('value', s => players = s.val() || {});
-            db.ref('battle_foods').on('value', s => foods = s.val() || {});
+            // رسبنة أولية خفيفة
+            if (Object.keys(foods).length < 50) spawnFood(100);
+            requestAnimationFrame(loop);
         }
 
-        // --- التحكم ---
-        let joyTouching = false;
-        const joyKnob = document.getElementById('joystick-knob');
+        // تحكم الماوس للكمبيوتر
+        window.addEventListener('mousemove', (e) => {
+            if (!isLive || ('ontouchstart' in window)) return;
+            me.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
+        });
+
+        window.onmousedown = () => isBoosting = true;
+        window.onmouseup = () => isBoosting = false;
+
+        // تحكم اللمس للجوال
         window.addEventListener('touchmove', (e) => {
-            const rect = document.getElementById('joystick-container').getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            const dx = e.touches[0].clientX - centerX;
-            const dy = e.touches[0].clientY - centerY;
+            if (!isLive) return;
+            const touch = e.touches[0];
+            const base = document.getElementById('joy-base').getBoundingClientRect();
+            const dx = touch.clientX - (base.left + 50);
+            const dy = touch.clientY - (base.top + 50);
+            me.angle = Math.atan2(dy, dx);
             const dist = Math.min(Math.hypot(dx, dy), 40);
-            const angle = Math.atan2(dy, dx);
-            joyKnob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
-            mySnake.angle = angle;
-            joyTouching = true;
-        }, {passive: false});
-        window.addEventListener('touchend', () => { joyTouching = false; joyKnob.style.transform = "translate(0,0)"; });
-        window.onmousemove = (e) => { if(!joyTouching) mySnake.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2); };
+            document.getElementById('joy-stick').style.transform = `translate(${Math.cos(me.angle)*dist}px, ${Math.sin(me.angle)*dist}px)`;
+            isBoosting = e.touches.length > 1;
+        }, { passive: false });
 
-        function gameLoop() {
-            if(!myId || !gameActive) return;
+        db.ref('v_final_fixed').on('value', s => players = s.val() || {});
+        db.ref('foods_fixed').on('value', s => foods = s.val() || {});
 
-            // السرعة تقل مع زيادة الوزن
-            let currentSpeed = Math.max(2.5, 5 - (mySnake.score / 600));
-            mySnake.x += Math.cos(mySnake.angle) * currentSpeed;
-            mySnake.y += Math.sin(mySnake.angle) * currentSpeed;
+        function loop() {
+            if(!isLive) return;
 
-            // تصادم الجدار
-            if (mySnake.x < 15 || mySnake.x > WORLD_SIZE-15 || mySnake.y < 15 || mySnake.y > WORLD_SIZE-15) { die(); return; }
+            let speed = isBoosting && me.score > 20 ? 3.8 : 2.3;
+            if(isBoosting && me.score > 20) me.score -= 0.1;
 
-            // تصادم اللاعبين (القتل)
-            for (let id in players) {
-                if (id === myId) continue;
-                let other = players[id];
-                if (!other.body) continue;
-                for (let i = 0; i < other.body.length; i++) {
-                    let part = other.body[i];
-                    if (Math.hypot(mySnake.x - part.x, mySnake.y - part.y) < 15 + (other.score/120)) {
-                        die(); return;
-                    }
+            me.x += Math.cos(me.angle) * speed;
+            me.y += Math.sin(me.angle) * speed;
+
+            if(me.x < 0 || me.x > WORLD || me.y < 0 || me.y > WORLD) { die(); return; }
+
+            // تصادم (تقليل عدد نقاط الفحص لتحسين الأداء)
+            for(let id in players) {
+                if(id === myId) continue;
+                let p = players[id]; if(!p.body) continue;
+                let sz = Math.min(35, 14 + (p.score / 200));
+                for(let i=0; i<p.body.length; i+=4) {
+                    if(Math.hypot(me.x - p.body[i].x, me.y - p.body[i].y) < sz + 5) { die(); return; }
                 }
             }
 
-            mySnake.body.unshift({x: mySnake.x, y: mySnake.y});
-            if(mySnake.body.length > 20 + (mySnake.score/5)) mySnake.body.pop();
+            me.body.unshift({x: me.x, y: me.y});
+            if(me.body.length > 20 + (me.score/5)) me.body.pop();
 
-            viewX = mySnake.x - canvas.width / 2;
-            viewY = mySnake.y - canvas.height / 2;
-
-            for(let id in foods) {
-                if(Math.hypot(mySnake.x - foods[id].x, mySnake.y - foods[id].y) < 25) {
-                    mySnake.score += foods[id].v || 5;
-                    db.ref('battle_foods/'+id).remove();
+            // أكل (نظام رسبنة بطيء ومتزن)
+            for(let fId in foods) {
+                if(Math.hypot(me.x - foods[fId].x, me.y - foods[fId].y) < 35) {
+                    me.score += (foods[fId].v || 5);
+                    db.ref('foods_fixed/' + fId).remove();
                 }
             }
-            if (Object.keys(foods).length < 60) spawnFood(20);
-            db.ref('battle_arena/'+myId).set(mySnake);
+
+            // إبطاء الرسبنة التلقائية (نقطة واحدة كل فترة عشوائية)
+            if(Math.random() > 0.96 && Object.keys(foods).length < 400) spawnFood(2);
+
+            db.ref('v_final_fixed/' + myId).set(me);
             draw();
+            requestAnimationFrame(loop);
         }
 
-        function die() {
-            gameActive = false;
-            // تحويل الجسم لطعام
-            mySnake.body.forEach((p, i) => {
-                if(i % 3 === 0) db.ref('battle_foods').push({ x: p.x, y: p.y, c: mySnake.color, v: 15 });
-            });
-            // حذف الثعبان فوراً من السيرفر لكي لا يظهر كجثة معلقة
-            db.ref('battle_arena/'+myId).remove();
-            
-            document.getElementById('final-score').innerText = "نقاطك: " + Math.floor(mySnake.score);
-            document.getElementById('game-over-screen').style.display = 'flex';
-        }
-
-        function spawnFood(n) {
-            for(let i=0; i<n; i++) {
-                db.ref('battle_foods').push({
-                    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
-                    c: `hsl(${Math.random() * 360}, 100%, 50%)`, v: 5
+        function spawnFood(num = 1) {
+            for(let i=0; i<num; i++){
+                db.ref('foods_fixed').push({ 
+                    x: Math.random() * WORLD, 
+                    y: Math.random() * WORLD, 
+                    c: `hsl(${Math.random()*360}, 100%, 60%)`, 
+                    v: Math.random() > 0.95 ? 20 : 8 // تقليل قيمة السكور الكبير
                 });
             }
         }
 
-        function restartGame() { initGame(); }
+        function die() {
+            isLive = false;
+            me.body.forEach((p, i) => { if(i % 3 === 0) db.ref('foods_fixed').push({ x: p.x, y: p.y, c: me.color, v: 10 }); });
+            db.ref('v_final_fixed/' + myId).remove();
+            document.getElementById('score-text').innerText = "النقاط: " + Math.floor(me.score);
+            document.getElementById('death-screen').style.display = 'flex';
+        }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save(); ctx.translate(-viewX, -viewY);
-            ctx.strokeStyle = "#444"; ctx.lineWidth = 20; ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-            for(let id in foods) {
-                ctx.fillStyle = foods[id].c;
-                ctx.beginPath(); ctx.arc(foods[id].x, foods[id].y, (foods[id].v > 5 ? 10 : 5), 0, 7); ctx.fill();
+            gl.clearRect(0,0, canvas.width, canvas.height);
+            gl.save();
+            let zoom = Math.max(0.5, 1 - (me.score / 15000));
+            gl.translate(canvas.width/2, canvas.height/2);
+            gl.scale(zoom, zoom);
+            gl.translate(-me.x, -me.y);
+
+            // شبكة خفيفة
+            gl.strokeStyle = "#111"; gl.lineWidth = 2;
+            for(let i=0; i<=WORLD; i+=250) {
+                gl.beginPath(); gl.moveTo(i, 0); gl.lineTo(i, WORLD); gl.stroke();
+                gl.beginPath(); gl.moveTo(0, i); gl.lineTo(WORLD, i); gl.stroke();
             }
+
+            for(let f in foods) {
+                gl.fillStyle = foods[f].c;
+                gl.beginPath(); gl.arc(foods[f].x, foods[f].y, (foods[f].v > 10 ? 10 : 6), 0, 7); gl.fill();
+            }
+
             for(let id in players) {
-                const p = players[id]; if(!p.body || p.body.length < 2) continue;
-                const thick = 12 + (p.score/60);
-                ctx.strokeStyle = p.color; ctx.lineWidth = thick*2; ctx.lineCap="round";
-                ctx.beginPath(); ctx.moveTo(p.body[0].x, p.body[0].y);
-                for(let i=1; i<p.body.length; i++) ctx.lineTo(p.body[i].x, p.body[i].y);
-                ctx.stroke();
-                ctx.save(); ctx.translate(p.body[0].x, p.body[0].y); ctx.rotate(p.angle);
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.ellipse(0, 0, thick*1.4, thick*1.1, 0, 0, 7); ctx.fill();
-                ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(thick*0.6, -thick*0.4, thick*0.3, 0, 7); ctx.fill();
-                ctx.beginPath(); ctx.arc(thick*0.6, thick*0.4, thick*0.3, 0, 7); ctx.fill();
-                ctx.restore();
+                let p = players[id]; if(!p.body || p.body.length < 1) continue;
+                let size = Math.min(35, 14 + (p.score / 200));
+                gl.strokeStyle = p.color; gl.lineWidth = size*2; gl.lineCap = "round"; gl.lineJoin = "round";
+                gl.beginPath(); gl.moveTo(p.body[0].x, p.body[0].y);
+                p.body.forEach(b => gl.lineTo(b.x, b.y)); gl.stroke();
+                
+                gl.save(); gl.translate(p.body[0].x, p.body[0].y); gl.rotate(p.angle);
+                gl.fillStyle = "white"; gl.beginPath(); gl.arc(size/2, -size/2, size/3, 0, 7); gl.fill();
+                gl.beginPath(); gl.arc(size/2, size/2, size/3, 0, 7); gl.fill();
+                gl.restore();
             }
-            ctx.restore();
-            let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
-            document.getElementById('leaderboard').innerHTML = sorted.map(p => `<div>${p.name}: ${Math.floor(p.score)}</div>`).join('');
+            gl.restore();
+
+            let top = Object.values(players).sort((a,b)=>b.score - a.score).slice(0,5);
+            document.getElementById('leaderboard').innerHTML = "<b>🏆 المتصدرون</b><br>" + 
+                top.map((p,i)=> `${i+1}. ${p.name}: ${Math.floor(p.score)}`).join('<br>');
         }
     </script>
 </body>
