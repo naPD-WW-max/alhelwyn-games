@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ردهة الألعاب الفخمة - كروب الحلوين</title>
+    <title>بوابة الألعاب الملكية | كروب الحلوين</title>
     <style>
         /* --- الأساسيات والتنسيق العام --- */
         body, html { 
@@ -37,7 +37,7 @@
             text-shadow: 0 0 10px rgba(255, 204, 0, 0.4); 
         }
 
-        /* --- شبكة الألعاب (التصميم الطويل والمفصل) --- */
+        /* --- شبكة الألعاب --- */
         .games-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -50,6 +50,7 @@
             padding: 40px; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer; backdrop-filter: blur(15px);
             position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
         }
 
         .game-card::before {
@@ -63,11 +64,13 @@
             box-shadow: 0 20px 50px rgba(255, 69, 0, 0.4);
         }
 
-        .game-icon { font-size: 6rem; margin-bottom: 25px; display: block; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        .game-icon { font-size: 6rem; margin-bottom: 20px; display: block; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); transition: 0.3s; }
+        .game-card:hover .game-icon { transform: scale(1.1) rotate(5deg); }
+        
         .game-title { font-size: 2rem; font-weight: 900; color: #fff; margin-bottom: 15px; }
-        .game-desc { color: #aaa; line-height: 1.6; font-size: 1.1rem; }
+        .game-desc { color: #aaa; line-height: 1.6; font-size: 1.1rem; margin-bottom: 20px; }
 
-        /* --- واجهة الرومات (Lobby Mode) --- */
+        /* --- واجهة الرومات --- */
         #lobby-section { display: none; animation: fadeIn 0.6s ease; }
         .lobby-wrapper {
             background: rgba(20, 20, 20, 0.8); border: 1px solid #ff4500;
@@ -78,25 +81,19 @@
             border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 25px;
         }
 
-        .room-item {
-            background: rgba(40, 40, 40, 0.5); border: 1px solid #444;
-            padding: 20px; border-radius: 15px; margin-bottom: 15px;
-            display: flex; justify-content: space-between; align-items: center;
-            transition: 0.3s;
-        }
-        .room-item:hover { background: rgba(255, 69, 0, 0.1); border-color: #ff4500; }
-
         /* --- الأزرار الاحترافية --- */
         .btn {
             padding: 15px 35px; border-radius: 12px; border: none; 
             font-weight: bold; cursor: pointer; transition: 0.3s; 
             font-size: 1.1rem; text-transform: uppercase;
+            text-decoration: none; display: inline-block;
         }
         .btn-create { background: linear-gradient(45deg, #2ed573, #7bed9f); color: white; box-shadow: 0 5px 15px rgba(46, 213, 115, 0.3); }
-        .btn-join { background: linear-gradient(45deg, #ff4500, #ff6b6b); color: white; box-shadow: 0 5px 15px rgba(255, 69, 0, 0.3); }
+        .btn-join { background: linear-gradient(45deg, #ff4500, #ff6b6b); color: white; box-shadow: 0 5px 15px rgba(255, 69, 0, 0.3); width: 100%; }
+        .btn-snake { background: linear-gradient(45deg, #00ff41, #008f11); color: black; box-shadow: 0 5px 15px rgba(0, 255, 65, 0.3); width: 100%; }
         .btn-back { background: #444; color: white; margin-top: 40px; }
 
-        /* --- النافذة المنبثقة (The Big Modal) --- */
+        /* --- النافذة المنبثقة --- */
         .modal {
             display: none; position: fixed; z-index: 1000; top: 0; left: 0; 
             width: 100%; height: 100%; background: rgba(0,0,0,0.95);
@@ -107,14 +104,7 @@
             border: 2px solid #ff4500; width: 450px; text-align: right;
             box-shadow: 0 0 100px rgba(255, 69, 0, 0.2);
         }
-        .modal-content h3 { font-size: 2rem; color: #ff4500; margin-top: 0; text-align: center; }
-        .modal-content label { display: block; margin-top: 20px; color: #ffcc00; font-weight: bold; }
-        .modal-content select {
-            width: 100%; padding: 15px; margin-top: 10px; background: #000;
-            border: 1px solid #444; color: white; border-radius: 10px; font-size: 1.1rem;
-        }
 
-        /* علامة الإنستغرام والأنيميشن */
         .instagram-tag { position: fixed; top: 30px; right: 30px; color: #ffcc00; font-weight: bold; z-index: 100; font-size: 1.3rem; text-shadow: 0 0 10px #ffcc00; }
         @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -132,19 +122,21 @@
         </header>
 
         <div id="games-section" class="games-grid">
+            
             <div class="game-card" onclick="openLobby('X-O')">
                 <span class="game-icon">⚔️</span>
-                <div class="game-title">لعبة X-O التحدي</div>
-                <p class="game-desc">اختبر ذكاءك ضد أصدقائك في رومات مباشرة أو واجه الكمبيوتر في نمط الذكاء الاصطناعي المتطور.</p>
-                <button class="btn btn-join" style="width: 100%; margin-top: 20px;">دخول الردهة</button>
+                <div class="game-title">تحدي X-O</div>
+                <p class="game-desc">واجه أصدقائك في غرف خاصة أو اختبر مهاراتك ضد أذكى كمبيوتر في نمط الـ AI.</p>
+                <button class="btn btn-join">دخول الردهة</button>
             </div>
 
-            <div class="game-card" style="opacity: 0.6; cursor: not-allowed;">
+            <div class="game-card" onclick="window.location.href='snake.html'">
                 <span class="game-icon">🐍</span>
-                <div class="game-title">ثعبان الكروب</div>
-                <p class="game-desc">قريباً.. كن الأطول والأقوى في الساحة وحطم أرقام أصدقائك القياسية.</p>
-                <button class="btn" style="width: 100%; margin-top: 20px; background: #222;">قريباً جداً</button>
+                <div class="game-title">ساحة الثعابين</div>
+                <p class="game-desc">معركة جماعية أونلاين مباشرة! التهم النقاط، كن الأكبر، واسحق ثعابين المنافسين.</p>
+                <button class="btn btn-snake">العب الآن أونلاين</button>
             </div>
+
         </div>
 
         <div id="lobby-section">
@@ -156,11 +148,11 @@
                 
                 <div id="roomsContainer">
                     <div class="room-item">
-                        <div>
+                        <div style="text-align: right;">
                             <b style="font-size: 1.3rem;">روم تحدي الأساطير</b>
                             <p style="margin: 5px 0 0; color: #777;">المنشئ: المايسترو | الحالة: بانتظار الخصم</p>
                         </div>
-                        <button class="btn btn-join" onclick="quickJoin()">انضمام</button>
+                        <button class="btn btn-join" style="width: auto;" onclick="quickJoin()">انضمام</button>
                     </div>
                 </div>
             </div>
@@ -171,21 +163,20 @@
     <div id="createModal" class="modal">
         <div class="modal-content">
             <h3>تخصيص المواجهة</h3>
-            
-            <label>1. حدد نمط اللعب:</label>
-            <select id="playMode">
-                <option value="AI">لعب ضد الكمبيوتر (الذكاء الاصطناعي 🤖)</option>
-                <option value="PVP">لعب ضد صديق (روم محلي 👥)</option>
+            <label style="display:block; margin-top:20px; color:#ffcc00;">1. نمط اللعب:</label>
+            <select id="playMode" style="width:100%; padding:15px; margin-top:10px; background:#000; border:1px solid #444; color:white; border-radius:10px;">
+                <option value="AI">ضد الكمبيوتر (ذكاء اصطناعي 🤖)</option>
+                <option value="PVP">ضد صديق (أونلاين 👥)</option>
             </select>
 
-            <label>2. اختر رمزك المفضل:</label>
-            <select id="hostChoice">
-                <option value="X">سألعب باستخدام الرمز ( X )</option>
-                <option value="O">سألعب باستخدام الرمز ( O )</option>
+            <label style="display:block; margin-top:20px; color:#ffcc00;">2. اختر رمزك:</label>
+            <select id="hostChoice" style="width:100%; padding:15px; margin-top:10px; background:#000; border:1px solid #444; color:white; border-radius:10px;">
+                <option value="X">سألعب بـ ( X )</option>
+                <option value="O">سألعب بـ ( O )</option>
             </select>
             
             <button class="btn btn-create" style="width:100%; margin-top:30px; padding: 20px;" onclick="launchGame()">بدء المعركة الآن</button>
-            <p onclick="closeCreateModal()" style="cursor:pointer; text-align:center; color:gray; margin-top:20px;">إلغاء والعودة</p>
+            <p onclick="closeCreateModal()" style="cursor:pointer; text-align:center; color:gray; margin-top:20px;">إلغاء</p>
         </div>
     </div>
 
@@ -194,33 +185,26 @@
         const userName = sessionStorage.getItem('userName') || "يا بطل";
         document.getElementById('welcomeText').innerText = `أهلاً بك يا ${userName} في عالم التحدي`;
 
-        // دالة فتح الردهة
         function openLobby(game) {
             document.getElementById('games-section').style.display = 'none';
             document.getElementById('lobby-section').style.display = 'block';
             document.getElementById('mainTitle').innerText = "ردهة " + game;
         }
 
-        // دالة العودة
         function closeLobby() {
             document.getElementById('games-section').style.display = 'grid';
             document.getElementById('lobby-section').style.display = 'none';
             document.getElementById('mainTitle').innerText = "بوابة الألعاب الملكية";
         }
 
-        // التحكم بالنافذة المنبثقة
         function openCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
         function closeCreateModal() { document.getElementById('createModal').style.display = 'none'; }
 
-        // إطلاق اللعبة مع حفظ الإعدادات
         function launchGame() {
             const mode = document.getElementById('playMode').value;
             const symbol = document.getElementById('hostChoice').value;
-            
             sessionStorage.setItem('playMode', mode);
             sessionStorage.setItem('playerSymbol', symbol);
-            
-            // إضافة تأثير اختفاء قبل الانتقال
             document.body.style.opacity = '0';
             document.body.style.transition = '0.5s';
             setTimeout(() => { window.location.href = 'tictactoe.html'; }, 500);
@@ -232,7 +216,7 @@
             window.location.href = 'tictactoe.html';
         }
 
-        // --- نظام خلفية الجزيئات النارية (طويل ومفصل) ---
+        // --- نظام خلفية الجزيئات النارية ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -240,9 +224,7 @@
         window.addEventListener('resize', resize); resize();
 
         class Particle {
-            constructor() {
-                this.reset();
-            }
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = canvas.height + Math.random() * 100;
@@ -263,9 +245,7 @@
                 ctx.fill();
             }
         }
-
         for (let i = 0; i < 100; i++) { particles.push(new Particle()); }
-
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });

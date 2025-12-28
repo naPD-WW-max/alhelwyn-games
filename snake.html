@@ -2,279 +2,191 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ساحة الثعابين الجماعية | كروب الحلوين</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SNAKE REALISM | الثعبان الواقعي</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
     <style>
-        :root {
-            --primary: #00ff41;
-            --bg: #0a0a0a;
-        }
-
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg); color: white;
-            font-family: 'Segoe UI', sans-serif; overflow: hidden;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        /* واجهة اللعبة */
-        #gameCanvas {
-            background: #000;
-            border: 2px solid #333;
-            box-shadow: 0 0 50px rgba(0, 255, 65, 0.1);
-            cursor: none;
-        }
-
-        .leaderboard {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(0, 0, 0, 0.8); padding: 15px;
-            border-radius: 10px; border: 1px solid var(--primary);
-            min-width: 150px; z-index: 100;
-        }
-
-        .leaderboard h3 { margin: 0 0 10px 0; color: var(--primary); font-size: 1rem; }
-        .score-item { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
-
-        .joystick-container {
-            position: fixed; bottom: 40px; left: 40px;
-            width: 100px; height: 100px; background: rgba(255,255,255,0.1);
-            border-radius: 50%; display: none; /* تظهر فقط في الموبايل */
-        }
-
-        #killLog {
-            position: absolute; top: 20px; left: 20px;
-            color: #ff4500; font-weight: bold;
-        }
-
-        /* شاشة البداية */
-        #startOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-
-        .btn-start {
-            padding: 15px 40px; font-size: 1.5rem; background: var(--primary);
-            border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
-            transition: 0.3s; box-shadow: 0 0 20px var(--primary);
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #080808; overflow: hidden; font-family: sans-serif; }
+        canvas { display: block; }
+        .leaderboard { position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; border: 1px solid #444; color: #fff; min-width: 140px; z-index: 100; font-size: 13px; }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .btn { padding: 15px 40px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <div id="startOverlay">
-        <h1 style="color:var(--primary); font-size: 3rem; margin-bottom: 10px;">SNAKE.IO الحقيقي</h1>
-        <p style="color:#888; margin-bottom: 30px;">كروب الحلوين - معركة البقاء</p>
-        <button class="btn-start" onclick="enterArena()">دخول الساحة</button>
+    <div id="overlay">
+        <h1 style="color: #0f0;">REALISTIC SNAKE IO</h1>
+        <button class="btn" onclick="initGame()">دخول الساحة</button>
     </div>
 
-    <div class="leaderboard" id="leaderboard">
-        <h3>قائمة المتصدرين</h3>
-        <div id="scoreList"></div>
+    <div class="leaderboard">
+        <div id="scores"></div>
     </div>
-
-    <div id="killLog"></div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        // --- إعدادات Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyC_O3VFAZW3OZGrxxk2yK58Avgj-8WVs-M",
             authDomain: "alhelwyn.firebaseapp.com",
             projectId: "alhelwyn",
-            storageBucket: "alhelwyn.firebasestorage.app",
-            messagingSenderId: "681982112322",
-            appId: "1:681982112322:web:4f437b6bf2e57fab48b3db",
             databaseURL: "https://alhelwyn-default-rtdb.firebaseio.com/"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // متغيرات اللعبة
+        const WORLD_SIZE = 3000; 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const myName = sessionStorage.getItem('userName') || "لاعب_" + Math.floor(Math.random()*100);
-        
+        let viewX = 0, viewY = 0;
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let myId = "";
-        let players = {};
-        let foods = {};
+        let myId = "", players = {}, foods = {};
         let mySnake = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            body: [],
-            angle: 0,
-            score: 0,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
+            body: [], angle: 0, score: 0,
+            color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+            name: sessionStorage.getItem('userName') || "ثعبان"
         };
 
-        // --- الدخول للعبة ---
-        function enterArena() {
-            document.getElementById('startOverlay').style.display = 'none';
-            const playerRef = db.ref('players').push();
-            myId = playerRef.key;
-            
-            // تحديث البيانات كل 50 ملي ثانية (لضمان السلاسة)
-            setInterval(updateMyData, 50);
-            
-            // الاستماع للاعبين الآخرين
-            db.ref('players').on('value', snap => {
-                players = snap.val() || {};
-                updateLeaderboard();
+        function initGame() {
+            document.getElementById('overlay').style.display = 'none';
+            const ref = db.ref('real_snakes').push();
+            myId = ref.key;
+            setInterval(gameLoop, 1000/50);
+            db.ref('real_snakes').on('value', s => players = s.val() || {});
+            db.ref('real_foods').on('value', s => {
+                foods = s.val() || {};
+                if (Object.keys(foods).length < 40) spawnFood(20);
             });
-
-            // الاستماع للأكل
-            db.ref('foods').on('value', snap => {
-                foods = snap.val() || {};
-            });
-
-            // توليد أكل إذا كنت أول لاعب
-            if (Object.keys(players).length <= 1) spawnFood();
         }
 
-        // --- التحكم بالماوس ---
+        function spawnFood(n) {
+            for(let i=0; i<n; i++) {
+                db.ref('real_foods').push({
+                    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
+                    c: `hsl(${Math.random() * 360}, 100%, 50%)`
+                });
+            }
+        }
+
         window.onmousemove = (e) => {
-            const dx = e.clientX - canvas.width / 2;
-            const dy = e.clientY - canvas.height / 2;
-            mySnake.angle = Math.atan2(dy, dx);
+            mySnake.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
         };
 
-        function updateMyData() {
-            if (!myId) return;
-
-            // تحريك الرأس
-            const speed = 3;
+        function gameLoop() {
+            if(!myId) return;
+            const speed = 4;
             mySnake.x += Math.cos(mySnake.angle) * speed;
             mySnake.y += Math.sin(mySnake.angle) * speed;
 
-            // إضافة الرأس للجسم
+            if(mySnake.x < 0 || mySnake.x > WORLD_SIZE || mySnake.y < 0 || mySnake.y > WORLD_SIZE) die();
+
             mySnake.body.unshift({x: mySnake.x, y: mySnake.y});
-            
-            // تحديد طول الجسم بناءً على السكور
-            if (mySnake.body.length > 10 + mySnake.score) {
-                mySnake.body.pop();
-            }
+            if(mySnake.body.length > 20 + (mySnake.score / 5)) mySnake.body.pop();
 
-            // فحص التصادم مع الحدود
-            if (mySnake.x < 0 || mySnake.x > canvas.width || mySnake.y < 0 || mySnake.y > canvas.height) {
-                gameOver();
-            }
+            viewX = mySnake.x - canvas.width / 2;
+            viewY = mySnake.y - canvas.height / 2;
 
-            // فحص أكل الطعام
-            checkFoodCollision();
-
-            // فحص التصادم مع الثعابين الأخرى
-            checkSnakeCollision();
-
-            // إرسال البيانات للسيرفر
-            db.ref('players/' + myId).set({
-                name: myName,
-                x: mySnake.x,
-                y: mySnake.y,
-                body: mySnake.body,
-                color: mySnake.color,
-                score: mySnake.score
-            });
-        }
-
-        function checkFoodCollision() {
-            for (let id in foods) {
-                let f = foods[id];
-                let dist = Math.hypot(mySnake.x - f.x, mySnake.y - f.y);
-                if (dist < 15) {
-                    mySnake.score += 2;
-                    db.ref('foods/' + id).remove();
-                    spawnFood();
+            for(let id in foods) {
+                if(Math.hypot(mySnake.x - foods[id].x, mySnake.y - foods[id].y) < 25) {
+                    mySnake.score += 5;
+                    db.ref('real_foods/'+id).remove();
                 }
             }
+            db.ref('real_snakes/'+myId).set(mySnake);
+            draw();
         }
 
-        function checkSnakeCollision() {
-            for (let id in players) {
-                if (id === myId) continue;
-                let other = players[id];
-                if (!other.body) continue;
-
-                other.body.forEach(part => {
-                    let dist = Math.hypot(mySnake.x - part.x, mySnake.y - part.y);
-                    if (dist < 10) gameOver(); // إذا لمست جسم غيرك تموت
-                });
-            }
-        }
-
-        function spawnFood() {
-            if (Object.keys(foods).length < 30) {
-                db.ref('foods').push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    color: `hsl(${Math.random() * 360}, 100%, 50%)`
-                });
-            }
-        }
-
-        function gameOver() {
-            db.ref('players/' + myId).remove();
-            alert("لقد خسرت! السكور: " + mySnake.score);
+        function die() {
+            db.ref('real_snakes/'+myId).remove();
             location.reload();
         }
 
-        // --- الرسم (الرندر) ---
+        function drawSnake(p) {
+            if (!p.body || p.body.length < 2) return;
+            const thickness = Math.min(28, 10 + (p.score / 50));
+
+            // 1. رسم الجسم كقطعة واحدة منحنية
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.lineWidth = thickness * 2;
+            
+            // تدرج لوني للجسم
+            let gradient = ctx.createLinearGradient(p.body[0].x, p.body[0].y, p.body[p.body.length-1].x, p.body[p.body.length-1].y);
+            gradient.addColorStop(0, p.color);
+            gradient.addColorStop(1, "black");
+            ctx.strokeStyle = gradient;
+
+            ctx.beginPath();
+            ctx.moveTo(p.body[0].x, p.body[0].y);
+            for (let i = 1; i < p.body.length; i++) {
+                ctx.lineTo(p.body[i].x, p.body[i].y);
+            }
+            ctx.stroke();
+
+            // 2. رسم الرأس بشكل "بيضاوي" واقعي
+            const head = p.body[0];
+            ctx.save();
+            ctx.translate(head.x, head.y);
+            ctx.rotate(p.angle);
+            
+            // شكل الرأس
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, thickness * 1.5, thickness * 1.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // اللسان (يتحرك تلقائياً)
+            const tongueLen = 10 + Math.sin(Date.now() / 100) * 5;
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(thickness * 1.4, 0);
+            ctx.lineTo(thickness * 1.4 + tongueLen, 0);
+            ctx.stroke();
+
+            // العيون
+            ctx.fillStyle = "white";
+            ctx.beginPath(); ctx.arc(thickness * 0.6, -thickness * 0.5, thickness * 0.3, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(thickness * 0.6, thickness * 0.5, thickness * 0.3, 0, 7); ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.beginPath(); ctx.arc(thickness * 0.7, -thickness * 0.5, thickness * 0.15, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(thickness * 0.7, thickness * 0.5, thickness * 0.15, 0, 7); ctx.fill();
+
+            ctx.restore();
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(-viewX, -viewY);
 
-            // رسم الأكل
-            for (let id in foods) {
-                let f = foods[id];
-                ctx.fillStyle = f.color;
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, 5, 0, Math.PI * 2);
-                ctx.fill();
+            // حدود العالم حمراء مضيئة
+            ctx.strokeStyle = "red"; ctx.lineWidth = 5;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            // رسم الطعام
+            for(let id in foods) {
+                ctx.fillStyle = foods[id].c;
+                ctx.beginPath(); ctx.arc(foods[id].x, foods[id].y, 5, 0, 7); ctx.fill();
             }
 
-            // رسم كل اللاعبين
-            for (let id in players) {
-                let p = players[id];
-                if (!p.body) continue;
+            // رسم اللاعبين
+            for(let id in players) drawSnake(players[id]);
 
-                ctx.fillStyle = p.color;
-                p.body.forEach((part, index) => {
-                    ctx.beginPath();
-                    ctx.arc(part.x, part.y, index === 0 ? 10 : 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    if (index === 0) { // رسم الاسم فوق الرأس
-                        ctx.fillStyle = "white";
-                        ctx.font = "12px Arial";
-                        ctx.fillText(p.name, part.x - 20, part.y - 15);
-                        ctx.fillStyle = p.color;
-                    }
-                });
-            }
-
-            requestAnimationFrame(draw);
+            ctx.restore();
+            updateScores();
         }
 
-        function updateLeaderboard() {
-            let list = Object.values(players).sort((a,b) => b.score - a.score);
-            let html = "";
-            list.slice(0, 5).forEach(p => {
-                html += `<div class="score-item"><span>${p.name}</span><span>${p.score}</span></div>`;
-            });
-            document.getElementById('scoreList').innerHTML = html;
+        function updateScores() {
+            let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
+            document.getElementById('scores').innerHTML = sorted.map(p => `<div>${p.name}: ${p.score}</div>`).join('');
         }
-
-        // مسح اللاعب عند إغلاق المتصفح
-        window.onbeforeunload = () => { if(myId) db.ref('players/' + myId).remove(); };
-
-        draw();
     </script>
 </body>
 </html>
