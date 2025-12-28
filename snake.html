@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SNAKE REALISM | الثعبان الواقعي</title>
+    <title>SNAKE PRO | نسخة الجوال والحائط</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #080808; overflow: hidden; font-family: sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050505; overflow: hidden; touch-action: none; }
         canvas { display: block; }
-        .leaderboard { position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; border: 1px solid #444; color: #fff; min-width: 140px; z-index: 100; font-size: 13px; }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .btn { padding: 15px 40px; background: #222; color: #0f0; border: 2px solid #0f0; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: white; }
+        .btn { padding: 15px 40px; background: #ff0000; color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 1.5rem; box-shadow: 0 0 20px #ff0000; }
+        .leaderboard { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; font-size: 12px; pointer-events: none; border: 1px solid #ff0000; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1 style="color: #0f0;">REALISTIC SNAKE IO</h1>
-        <button class="btn" onclick="initGame()">دخول الساحة</button>
+        <h1>SNAKE REALISM</h1>
+        <p>اسحب الشاشة للتحرك (للجوال) أو استخدم الماوس</p>
+        <button class="btn" onclick="initGame()">دخول اللعبة ⚔️</button>
     </div>
 
-    <div class="leaderboard">
-        <div id="scores"></div>
-    </div>
+    <div class="leaderboard" id="leaderboard"></div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -49,42 +48,59 @@
         let mySnake = {
             x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
             body: [], angle: 0, score: 0,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-            name: sessionStorage.getItem('userName') || "ثعبان"
+            color: `hsl(${Math.random() * 360}, 80%, 55%)`,
+            name: sessionStorage.getItem('userName') || "حلو"
         };
 
         function initGame() {
             document.getElementById('overlay').style.display = 'none';
-            const ref = db.ref('real_snakes').push();
+            const ref = db.ref('mobile_arena').push();
             myId = ref.key;
             setInterval(gameLoop, 1000/50);
-            db.ref('real_snakes').on('value', s => players = s.val() || {});
-            db.ref('real_foods').on('value', s => {
+            db.ref('mobile_arena').on('value', s => players = s.val() || {});
+            db.ref('mobile_foods').on('value', s => {
                 foods = s.val() || {};
                 if (Object.keys(foods).length < 40) spawnFood(20);
             });
         }
 
+        // --- نظام التحكم (ماوس + لمس) ---
+        function updateAngle(clientX, clientY) {
+            const dx = clientX - canvas.width / 2;
+            const dy = clientY - canvas.height / 2;
+            mySnake.angle = Math.atan2(dy, dx);
+        }
+
+        window.onmousemove = (e) => updateAngle(e.clientX, e.clientY);
+        
+        window.ontouchmove = (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            updateAngle(touch.clientX, touch.clientY);
+        };
+
         function spawnFood(n) {
             for(let i=0; i<n; i++) {
-                db.ref('real_foods').push({
-                    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
+                db.ref('mobile_foods').push({
+                    x: 20 + Math.random() * (WORLD_SIZE - 40),
+                    y: 20 + Math.random() * (WORLD_SIZE - 40),
                     c: `hsl(${Math.random() * 360}, 100%, 50%)`
                 });
             }
         }
 
-        window.onmousemove = (e) => {
-            mySnake.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
-        };
-
         function gameLoop() {
             if(!myId) return;
-            const speed = 4;
+
+            const speed = 4.2;
             mySnake.x += Math.cos(mySnake.angle) * speed;
             mySnake.y += Math.sin(mySnake.angle) * speed;
 
-            if(mySnake.x < 0 || mySnake.x > WORLD_SIZE || mySnake.y < 0 || mySnake.y > WORLD_SIZE) die();
+            // --- فحص تصادم الجدار (حل مشكلة الاختراق) ---
+            if(mySnake.x <= 0 || mySnake.x >= WORLD_SIZE || mySnake.y <= 0 || mySnake.y >= WORLD_SIZE) {
+                die();
+                return;
+            }
 
             mySnake.body.unshift({x: mySnake.x, y: mySnake.y});
             if(mySnake.body.length > 20 + (mySnake.score / 5)) mySnake.body.pop();
@@ -92,73 +108,22 @@
             viewX = mySnake.x - canvas.width / 2;
             viewY = mySnake.y - canvas.height / 2;
 
+            // تصادم الأكل
             for(let id in foods) {
                 if(Math.hypot(mySnake.x - foods[id].x, mySnake.y - foods[id].y) < 25) {
                     mySnake.score += 5;
-                    db.ref('real_foods/'+id).remove();
+                    db.ref('mobile_foods/'+id).remove();
                 }
             }
-            db.ref('real_snakes/'+myId).set(mySnake);
+
+            db.ref('mobile_arena/'+myId).set(mySnake);
             draw();
         }
 
         function die() {
-            db.ref('real_snakes/'+myId).remove();
+            db.ref('mobile_arena/'+myId).remove();
+            alert("💥 اصطدمت بالجدار! حاول مجدداً.");
             location.reload();
-        }
-
-        function drawSnake(p) {
-            if (!p.body || p.body.length < 2) return;
-            const thickness = Math.min(28, 10 + (p.score / 50));
-
-            // 1. رسم الجسم كقطعة واحدة منحنية
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            ctx.lineWidth = thickness * 2;
-            
-            // تدرج لوني للجسم
-            let gradient = ctx.createLinearGradient(p.body[0].x, p.body[0].y, p.body[p.body.length-1].x, p.body[p.body.length-1].y);
-            gradient.addColorStop(0, p.color);
-            gradient.addColorStop(1, "black");
-            ctx.strokeStyle = gradient;
-
-            ctx.beginPath();
-            ctx.moveTo(p.body[0].x, p.body[0].y);
-            for (let i = 1; i < p.body.length; i++) {
-                ctx.lineTo(p.body[i].x, p.body[i].y);
-            }
-            ctx.stroke();
-
-            // 2. رسم الرأس بشكل "بيضاوي" واقعي
-            const head = p.body[0];
-            ctx.save();
-            ctx.translate(head.x, head.y);
-            ctx.rotate(p.angle);
-            
-            // شكل الرأس
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, thickness * 1.5, thickness * 1.2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // اللسان (يتحرك تلقائياً)
-            const tongueLen = 10 + Math.sin(Date.now() / 100) * 5;
-            ctx.strokeStyle = "red";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(thickness * 1.4, 0);
-            ctx.lineTo(thickness * 1.4 + tongueLen, 0);
-            ctx.stroke();
-
-            // العيون
-            ctx.fillStyle = "white";
-            ctx.beginPath(); ctx.arc(thickness * 0.6, -thickness * 0.5, thickness * 0.3, 0, 7); ctx.fill();
-            ctx.beginPath(); ctx.arc(thickness * 0.6, thickness * 0.5, thickness * 0.3, 0, 7); ctx.fill();
-            ctx.fillStyle = "black";
-            ctx.beginPath(); ctx.arc(thickness * 0.7, -thickness * 0.5, thickness * 0.15, 0, 7); ctx.fill();
-            ctx.beginPath(); ctx.arc(thickness * 0.7, thickness * 0.5, thickness * 0.15, 0, 7); ctx.fill();
-
-            ctx.restore();
         }
 
         function draw() {
@@ -166,8 +131,9 @@
             ctx.save();
             ctx.translate(-viewX, -viewY);
 
-            // حدود العالم حمراء مضيئة
-            ctx.strokeStyle = "red"; ctx.lineWidth = 5;
+            // حدود العالم (الخط الأحمر القاتل)
+            ctx.strokeStyle = "#ff0000";
+            ctx.lineWidth = 15;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
             // رسم الطعام
@@ -176,17 +142,44 @@
                 ctx.beginPath(); ctx.arc(foods[id].x, foods[id].y, 5, 0, 7); ctx.fill();
             }
 
-            // رسم اللاعبين
-            for(let id in players) drawSnake(players[id]);
+            // رسم الثعابين بواقعية
+            for(let id in players) {
+                const p = players[id];
+                if(!p.body || p.body.length < 2) continue;
+                const thick = Math.min(25, 10 + (p.score/50));
+                
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = thick * 2;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                ctx.beginPath();
+                ctx.moveTo(p.body[0].x, p.body[0].y);
+                for(let i=1; i<p.body.length; i++) ctx.lineTo(p.body[i].x, p.body[i].y);
+                ctx.stroke();
+
+                // الرأس والعيون
+                ctx.save();
+                ctx.translate(p.body[0].x, p.body[0].y);
+                ctx.rotate(p.angle);
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.ellipse(0, 0, thick*1.4, thick*1.1, 0, 0, 7); ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.beginPath(); ctx.arc(thick*0.6, -thick*0.4, thick*0.3, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(thick*0.6, thick*0.4, thick*0.3, 0, 7); ctx.fill();
+                ctx.restore();
+            }
 
             ctx.restore();
-            updateScores();
+            updateLeaderboard();
         }
 
-        function updateScores() {
+        function updateLeaderboard() {
             let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
-            document.getElementById('scores').innerHTML = sorted.map(p => `<div>${p.name}: ${p.score}</div>`).join('');
+            document.getElementById('leaderboard').innerHTML = sorted.map(p => `<div>${p.name}: ${p.score}</div>`).join('');
         }
+
+        window.onbeforeunload = () => { if(myId) db.ref('mobile_arena/'+myId).remove(); };
     </script>
 </body>
 </html>
