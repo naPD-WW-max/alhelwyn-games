@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحدي X-O أونلاين | كروب الحلوين</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        /* --- التصميم الفخم (UI المطور) --- */
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        .bg-glow {
+            position: absolute; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255, 69, 0, 0.15) 0%, transparent 70%);
+            z-index: 0; filter: blur(80px); animation: pulse 4s infinite alternate;
+        }
+
+        @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+
+        /* بار الحالة */
+        .status-bar {
+            position: relative; z-index: 10; background: rgba(255, 255, 255, 0.05);
+            padding: 15px 45px; border-radius: 50px; margin-bottom: 25px;
+            border: 1px solid rgba(255, 69, 0, 0.4); color: #ffcc00; 
+            font-weight: 900; font-size: 1.2rem; text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .room-tag {
+            position: relative; z-index: 10; margin-bottom: 10px; 
+            color: #777; font-size: 0.9rem; font-weight: bold;
+        }
+
+        /* لوحة اللعب */
+        .board {
+            position: relative; z-index: 10;
+            display: grid; grid-template-columns: repeat(3, 120px); grid-gap: 15px;
+            background: rgba(30, 30, 30, 0.8); padding: 20px; border-radius: 25px;
+            border: 2px solid #333; backdrop-filter: blur(15px);
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        .cell {
+            width: 120px; height: 120px; background: #0a0a0a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; font-weight: 900; cursor: pointer;
+            border-radius: 15px; border: 2px solid #222; transition: 0.3s;
+        }
+        
+        .cell:hover { border-color: #ff4500; background: #111; transform: scale(1.05); }
+        .cell.x { color: #ff4757; text-shadow: 0 0 20px #ff4757; }
+        .cell.o { color: #2e86de; text-shadow: 0 0 20px #2e86de; }
+
+        /* واجهة اختيار الروم (البداية) */
+        #setupModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: #111; padding: 40px; border-radius: 30px; 
+            border: 2px solid #ff4500; width: 350px; text-align: center;
+            box-shadow: 0 0 100px rgba(255, 69, 0, 0.2);
+        }
+        input { 
+            width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #444; 
+            background: #000; color: white; text-align: center; font-size: 1.5rem; 
+            margin: 20px 0; outline: none;
+        }
+        input:focus { border-color: #ff4500; }
+
+        /* أزرار */
+        .btn {
+            padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold;
+            cursor: pointer; font-size: 1.1rem; color: white; transition: 0.3s;
+        }
+        .btn-main { background: linear-gradient(45deg, #ff4500, #ff6b6b); width: 100%; margin-bottom: 10px; }
+        .btn-secondary { background: #333; width: 100%; }
+        .btn:hover { opacity: 0.9; transform: translateY(-3px); }
+
+        /* شاشة النهاية */
+        #winOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.98); z-index: 1500;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .win-text { font-size: 4.5rem; font-weight: 900; text-align: center; color: #ff4500; margin-bottom: 40px; line-height: 1.2; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div id="setupModal">
+        <div class="modal-box">
+            <h2 style="color:#ff4500; margin:0">راديو الحرب أونلاين</h2>
+            <p style="color:#777">أدخل رمز الروم السري</p>
+            <input type="text" id="roomInput" maxlength="5" placeholder="0000">
+            <button class="btn btn-main" onclick="startOnline('host')">إنشاء غرفة جديدة</button>
+            <button class="btn btn-secondary" onclick="startOnline('join')">انضمام لغرفة خصم</button>
+            <p onclick="window.location.href='games.html'" style="margin-top:20px; color:#555; cursor:pointer">رجوع للخلف</p>
+        </div>
+    </div>
+
+    <div class="room-tag" id="roomLabel">انتظر...</div>
+    <div class="status-bar" id="statusLabel">بانتظار البدء...</div>
+
+    <div class="board" id="gameBoard">
+        <div class="cell" data-index="0"></div><div class="cell" data-index="1"></div><div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div><div class="cell" data-index="4"></div><div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div><div class="cell" data-index="7"></div><div class="cell" data-index="8"></div>
+    </div>
+
+    <div id="winOverlay">
+        <div class="win-text" id="winnerText">فاز البطل</div>
+        <div style="display:flex; gap:15px">
+            <button class="btn btn-main" onclick="location.reload()">لعب مجدداً</button>
+            <button class="btn btn-secondary" onclick="window.location.href='games.html'">خروج</button>
+        </div>
+    </div>
+
+    <script>
+        // --- إعدادات Firebase الخاصة بك ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_O3VFAZW3OZGrxxk2yK58Avgj-8WVs-M",
+            authDomain: "alhelwyn.firebaseapp.com",
+            projectId: "alhelwyn",
+            storageBucket: "alhelwyn.firebasestorage.app",
+            messagingSenderId: "681982112322",
+            appId: "1:681982112322:web:4f437b6bf2e57fab48b3db",
+            measurementId: "G-E1EMGEFHEW",
+            databaseURL: "https://alhelwyn-default-rtdb.firebaseio.com/" 
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // متغيرات اللعبة
+        let myMark = ""; 
+        let roomCode = "";
+        let turn = "X";
+        let canPlay = false;
+        let myName = sessionStorage.getItem('userName') || "لاعب مجهول";
+        let localBoard = ["", "", "", "", "", "", "", "", ""];
+
+        // بدء اللعب
+        function startOnline(mode) {
+            const input = document.getElementById('roomInput').value;
+            if(!input) return alert("الرجاء كتابة رمز الروم!");
+            
+            roomCode = input;
+            document.getElementById('setupModal').style.display = 'none';
+            document.getElementById('roomLabel').innerText = "رقم الغرفة: " + roomCode;
+
+            if (mode === 'host') {
+                myMark = "X";
+                db.ref('rooms/' + roomCode).set({
+                    board: ["", "", "", "", "", "", "", "", ""],
+                    turn: "X",
+                    winner: "",
+                    p1: myName,
+                    p2: ""
+                });
+            } else {
+                myMark = "O";
+                db.ref('rooms/' + roomCode).update({ p2: myName });
+            }
+
+            listenToServer();
+        }
+
+        // الاستماع الدائم للسيرفر (Realtime)
+        function listenToServer() {
+            db.ref('rooms/' + roomCode).on('value', (snap) => {
+                const data = snap.val();
+                if(!data) return;
+
+                localBoard = data.board;
+                turn = data.turn;
+                
+                // تحديث الواجهة
+                const cells = document.querySelectorAll('.cell');
+                localBoard.forEach((v, i) => {
+                    cells[i].innerText = v;
+                    cells[i].className = 'cell ' + (v ? v.toLowerCase() : '');
+                });
+
+                // فحص الفوز
+                if (data.winner) {
+                    showFinal(data.winner);
+                } else {
+                    canPlay = (turn === myMark);
+                    document.getElementById('statusLabel').innerText = canPlay ? "دورك الآن يا وحش!" : "انتظر.. الخصم يفكر";
+                }
+            });
+        }
+
+        // عند الضغط على المربع
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.onclick = () => {
+                const i = cell.dataset.index;
+                if(!canPlay || localBoard[i] !== "") return;
+
+                localBoard[i] = myMark;
+                const nextTurn = (myMark === "X") ? "O" : "X";
+                
+                // فحص الفوز قبل الرفع
+                let winState = checkWinLocally();
+                let serverWinner = "";
+                if(winState === "Draw") serverWinner = "تعادل";
+                else if(winState) serverWinner = myName;
+
+                db.ref('rooms/' + roomCode).update({
+                    board: localBoard,
+                    turn: nextTurn,
+                    winner: serverWinner
+                });
+            };
+        });
+
+        function checkWinLocally() {
+            const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let l of lines) {
+                if(localBoard[l[0]] && localBoard[l[0]] === localBoard[l[1]] && localBoard[l[0]] === localBoard[l[2]]) return localBoard[l[0]];
+            }
+            if(localBoard.every(b => b !== "")) return "Draw";
+            return null;
+        }
+
+        function showFinal(w) {
+            const msg = (w === "تعادل") ? "انتهت بالتعادل!" : "مبروك الفوز يا \n" + w;
+            document.getElementById('winnerText').innerText = msg;
+            document.getElementById('winOverlay').style.display = 'flex';
+            canPlay = false;
+        }
+    </script>
+</body>
+</html>
