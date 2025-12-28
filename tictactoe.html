@@ -3,193 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المواجهة الكبرى - X-O أونلاين وكمبيوتر</title>
+    <title>تحدي X-O الأسطوري | كروب الحلوين</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
     <style>
-        /* --- الأساسيات والتنسيق البصري الفخم --- */
+        /* --- التصميم الفخم (UI المطور) --- */
         :root {
-            --primary-color: #ff4500;
-            --secondary-color: #ffcc00;
-            --bg-dark: #000000;
-            --cell-bg: #0a0a0a;
-            --text-glow: 0 0 20px rgba(255, 69, 0, 0.6);
+            --neon-orange: #ff4500;
+            --neon-blue: #2e86de;
+            --bg-deep: #050505;
         }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg-dark); color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-deep); color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             overflow: hidden;
         }
 
-        /* تأثيرات الخلفية المتحركة */
-        .background-visuals {
-            position: absolute; width: 100%; height: 100%; z-index: 0;
-            overflow: hidden; pointer-events: none;
+        /* تأثير الخلفية النبضية */
+        .glow-background {
+            position: absolute; width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(255, 69, 0, 0.15) 0%, transparent 75%);
+            z-index: 0; filter: blur(100px); animation: pulseEffect 5s infinite alternate ease-in-out;
         }
 
-        .glow-sphere {
-            position: absolute; width: 600px; height: 600px;
-            background: radial-gradient(circle, rgba(255, 69, 0, 0.12) 0%, transparent 75%);
-            border-radius: 50%; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            filter: blur(80px); animation: pulseGlow 6s infinite alternate ease-in-out;
+        @keyframes pulseEffect {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.4); opacity: 0.8; }
         }
 
-        @keyframes pulseGlow {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-            100% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-        }
-
-        /* شريط الحالة العلوي */
-        .status-header {
+        /* شريط الحالة الملكي */
+        .game-status-box {
             position: relative; z-index: 10;
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            padding: 20px 60px; border-radius: 100px;
-            border: 1px solid rgba(255, 69, 0, 0.3);
-            margin-bottom: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            transition: 0.5s;
+            backdrop-filter: blur(15px);
+            padding: 20px 50px; border-radius: 60px;
+            border: 1px solid rgba(255, 69, 0, 0.4);
+            margin-bottom: 35px; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
         }
 
-        #statusLabel {
-            font-size: 1.4rem; font-weight: 900; color: var(--secondary-color);
-            text-shadow: 0 0 10px rgba(255, 204, 0, 0.3); text-align: center;
+        #statusText {
+            font-size: 1.5rem; font-weight: 900; color: #ffcc00;
+            text-shadow: 0 0 15px rgba(255, 204, 0, 0.4); text-align: center;
         }
 
-        /* لوحة اللعب الكبرى */
-        .game-area {
+        /* منطقة اللعب */
+        .play-zone {
             position: relative; z-index: 10;
-            perspective: 1000px;
+            perspective: 1200px;
         }
 
-        .grid-container {
-            display: grid; grid-template-columns: repeat(3, 125px); grid-gap: 18px;
-            background: rgba(40, 40, 40, 0.6); padding: 25px;
-            border-radius: 30px; border: 2px solid #333;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
-            transform-style: preserve-3d;
+        .main-grid {
+            display: grid; grid-template-columns: repeat(3, 130px); grid-gap: 20px;
+            background: rgba(30, 30, 30, 0.7); padding: 25px;
+            border-radius: 35px; border: 2px solid #222;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
         }
 
-        .grid-cell {
-            width: 125px; height: 125px; background: var(--cell-bg);
-            border-radius: 18px; border: 2px solid #222;
+        .grid-square {
+            width: 130px; height: 130px; background: #000;
+            border-radius: 20px; border: 2px solid #1a1a1a;
             display: flex; align-items: center; justify-content: center;
-            font-size: 4.5rem; font-weight: 900; cursor: pointer;
+            font-size: 4.8rem; font-weight: 900; cursor: pointer;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
         }
 
-        .grid-cell:hover {
-            background: #111; border-color: var(--primary-color);
-            transform: translateZ(20px); box-shadow: 0 10px 20px rgba(255, 69, 0, 0.2);
+        .grid-square:hover {
+            background: #0d0d0d; border-color: var(--neon-orange);
+            transform: translateY(-10px) rotateX(10px);
+            box-shadow: 0 15px 30px rgba(255, 69, 0, 0.3);
         }
 
-        .grid-cell.x-mark { color: #ff4757; text-shadow: 0 0 25px #ff4757; }
-        .grid-cell.o-mark { color: #2e86de; text-shadow: 0 0 25px #2e86de; }
+        .x-player { color: #ff4757; text-shadow: 0 0 30px #ff4757; }
+        .o-player { color: #2e86de; text-shadow: 0 0 30px #2e86de; }
 
-        /* نافذة الأونلاين - تظهر فقط عند الحاجة */
-        .overlay-modal {
+        /* نافذة اختيار الروم أونلاين */
+        #onlineUI {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.96); z-index: 5000;
-            align-items: center; justify-content: center; backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.97); z-index: 5000;
+            align-items: center; justify-content: center;
         }
 
-        .modal-content {
+        .online-card {
             background: #111; padding: 50px; border-radius: 40px;
-            border: 3px solid var(--primary-color); width: 400px; text-align: center;
-            box-shadow: 0 0 100px rgba(255, 69, 0, 0.3);
+            border: 2px solid var(--neon-orange); width: 380px; text-align: center;
         }
 
-        .modal-content h2 { font-size: 2.2rem; color: var(--primary-color); margin-bottom: 10px; }
-        
-        .room-input {
-            width: 90%; padding: 20px; border-radius: 15px; border: 1px solid #444;
-            background: #000; color: white; font-size: 1.8rem; text-align: center;
-            margin: 25px 0; outline: none; letter-spacing: 5px;
+        .room-field {
+            width: 85%; padding: 18px; border-radius: 15px; border: 1px solid #333;
+            background: #000; color: white; font-size: 1.6rem; text-align: center;
+            margin: 30px 0; outline: none;
         }
 
-        /* الأزرار */
-        .action-btn {
-            padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold;
-            font-size: 1.2rem; cursor: pointer; transition: 0.3s; width: 100%;
+        /* الأزرار الاحترافية */
+        .cool-btn {
+            padding: 18px 35px; border-radius: 15px; border: none; font-weight: bold;
+            font-size: 1.1rem; cursor: pointer; transition: 0.3s; width: 100%;
             margin-bottom: 15px; text-transform: uppercase;
         }
-        .btn-create { background: linear-gradient(45deg, #ff4500, #ff6b6b); color: white; }
-        .btn-join { background: #222; color: #aaa; border: 1px solid #444; }
-        .action-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .btn-fire { background: linear-gradient(45deg, #ff4500, #ff6b6b); color: white; }
+        .btn-dark { background: #222; color: #888; border: 1px solid #333; }
+        .cool-btn:hover { transform: scale(1.04); filter: brightness(1.2); }
 
-        /* شاشة النهاية الأسطورية */
-        #finalOverlay {
+        /* شاشة الفوز النهائية */
+        #celebrationLayer {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); z-index: 9999;
+            background: rgba(0,0,0,0.98); z-index: 9000;
             flex-direction: column; align-items: center; justify-content: center;
         }
-        .final-msg { 
-            font-size: 5rem; font-weight: 900; color: var(--primary-color); 
-            text-align: center; margin-bottom: 50px; text-shadow: var(--text-glow);
+        .victory-text { 
+            font-size: 5.5rem; font-weight: 900; color: var(--neon-orange); 
+            text-align: center; margin-bottom: 40px; text-shadow: 0 0 40px var(--neon-orange);
         }
     </style>
 </head>
 <body>
 
-    <div class="background-visuals">
-        <div class="glow-sphere"></div>
-    </div>
+    <div class="glow-background"></div>
 
-    <div class="overlay-modal" id="onlineSetup">
-        <div class="modal-content">
-            <h2>روم التحدي</h2>
-            <p style="color: #666;">أدخل الرمز السري لبدء المعركة أونلاين</p>
-            <input type="text" id="roomCodeField" class="room-input" placeholder="----">
-            <button class="action-btn btn-create" onclick="initializeOnline('host')">إنشاء غرفة</button>
-            <button class="action-btn btn-join" onclick="initializeOnline('join')">انضمام لخصم</button>
-            <p onclick="window.location.href='games.html'" style="cursor:pointer; color: #444; margin-top: 15px;">إلغاء والعودة</p>
+    <div id="onlineUI">
+        <div class="online-card">
+            <h2 style="color:var(--neon-orange); margin:0">غرفة الأونلاين</h2>
+            <p style="color:#555">أدخل الرمز السري لبدء التحدي</p>
+            <input type="text" id="roomInputSecret" class="room-field" maxlength="6" placeholder="0000">
+            <button class="cool-btn btn-fire" onclick="startGlobalGame('host')">إنشاء غرفة</button>
+            <button class="cool-btn btn-dark" onclick="startGlobalGame('join')">انضمام لغرفة</button>
+            <p onclick="window.location.href='games.html'" style="cursor:pointer; color:#333; margin-top:10px">رجوع</p>
         </div>
     </div>
 
-    <div class="status-header">
-        <div id="statusLabel">جاري تهيئة الميدان...</div>
+    <div class="game-status-box">
+        <div id="statusText">بانتظار الأوامر...</div>
     </div>
 
-    <div class="game-area">
-        <div class="grid-container" id="gridContainer">
-            <div class="grid-cell" data-index="0"></div>
-            <div class="grid-cell" data-index="1"></div>
-            <div class="grid-cell" data-index="2"></div>
-            <div class="grid-cell" data-index="3"></div>
-            <div class="grid-cell" data-index="4"></div>
-            <div class="grid-cell" data-index="5"></div>
-            <div class="grid-cell" data-index="6"></div>
-            <div class="grid-cell" data-index="7"></div>
-            <div class="grid-cell" data-index="8"></div>
+    <div class="play-zone">
+        <div class="main-grid">
+            <div class="grid-square" data-index="0"></div><div class="grid-square" data-index="1"></div><div class="grid-square" data-index="2"></div>
+            <div class="grid-square" data-index="3"></div><div class="grid-square" data-index="4"></div><div class="grid-square" data-index="5"></div>
+            <div class="grid-square" data-index="6"></div><div class="grid-square" data-index="7"></div><div class="grid-square" data-index="8"></div>
         </div>
     </div>
 
-    <div id="finalOverlay">
-        <div class="final-msg" id="finalMsgText">الفائز هو</div>
-        <div style="display: flex; gap: 20px;">
-            <button class="action-btn btn-create" style="width: auto;" onclick="location.reload()">لعب مرة أخرى</button>
-            <button class="action-btn btn-join" style="width: auto;" onclick="window.location.href='games.html'">خروج</button>
+    <div id="celebrationLayer">
+        <div class="victory-text" id="winnerNameDisplay">فاز الوحش</div>
+        <div style="display:flex; gap:20px">
+            <button class="cool-btn btn-fire" style="width:200px" onclick="location.reload()">لعب مجدداً</button>
+            <button class="cool-btn btn-dark" style="width:200px" onclick="window.location.href='games.html'">خروج</button>
         </div>
     </div>
 
     <script>
-        /* --- منطق اللعبة المطور (الشامل) --- */
-        
-        // 1. جلب البيانات من الجلسة
-        const config = {
+        /* --- المحرك البرمجي المتكامل --- */
+
+        // إعدادات اللاعب والنظام
+        const userPrefs = {
             mode: sessionStorage.getItem('playMode') || 'AI',
-            user: sessionStorage.getItem('userName') || "البطل",
+            name: sessionStorage.getItem('userName') || "البطل",
             icon: sessionStorage.getItem('playerSymbol') || 'X',
-            aiIcon: (sessionStorage.getItem('playerSymbol') === 'X') ? 'O' : 'X'
+            enemyIcon: (sessionStorage.getItem('playerSymbol') === 'X') ? 'O' : 'X'
         };
 
-        // 2. إعداد Firebase
+        // ربط Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyC_O3VFAZW3OZGrxxk2yK58Avgj-8WVs-M",
             authDomain: "alhelwyn.firebaseapp.com",
@@ -201,157 +179,131 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const fbDB = firebase.database();
 
-        // 3. متغيرات حالة اللعبة
-        let gameState = ["", "", "", "", "", "", "", "", ""];
-        let turn = "X";
-        let isActive = true;
-        let currentRoom = "";
+        let currentBoard = ["", "", "", "", "", "", "", "", ""];
+        let activeTurn = "X";
+        let isGameRunning = true;
+        let onlineRoomID = "";
 
-        // 4. البداية الذكية
+        // دالة البدء الذكي (بناءً على طلبك: الكمبيوتر يبدأ فوراً)
         window.onload = () => {
-            if (config.mode === 'AI') {
-                // وضع الكمبيوتر يبدأ فوراً
-                document.getElementById('statusLabel').innerText = `تحدي الذكاء: أنت (${config.icon})`;
-                if (config.icon === 'O') setTimeout(aiLogic, 1000);
+            if (userPrefs.mode === 'AI') {
+                document.getElementById('statusText').innerText = `المنافس: الكمبيوتر | أنت: ${userPrefs.icon}`;
+                if (userPrefs.icon === 'O') setTimeout(aiExecution, 800);
             } else {
-                // وضع الأونلاين يظهر النافذة
-                document.getElementById('onlineSetup').style.display = 'flex';
+                document.getElementById('onlineUI').style.display = 'flex';
             }
         };
 
-        // 5. نظام الأونلاين المفصل
-        function initializeOnline(type) {
-            const code = document.getElementById('roomCodeField').value;
-            if (!code) return alert("الرجاء كتابة كود الروم أولاً!");
-            
-            currentRoom = code;
-            document.getElementById('onlineSetup').style.display = 'none';
-            
-            if (type === 'host') {
-                database.ref('rooms/' + currentRoom).set({
-                    board: ["", "", "", "", "", "", "", "", ""],
-                    turn: "X",
-                    winner: "",
-                    host: config.user
-                });
-            }
+        // نظام الضغط على المربعات
+        document.querySelectorAll('.grid-square').forEach(square => {
+            square.onclick = () => {
+                const idx = square.dataset.index;
+                
+                // التأكد من شروط اللعب
+                if (!isGameRunning || currentBoard[idx] !== "" || activeTurn !== userPrefs.icon) return;
 
-            // الاستماع لكل حركة في السيرفر
-            database.ref('rooms/' + currentRoom).on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (!data) return;
-
-                gameState = data.board;
-                turn = data.turn;
-                refreshBoard();
-
-                if (data.winner) {
-                    finishGame(data.winner);
+                if (userPrefs.mode === 'AI') {
+                    applyMove(idx, userPrefs.icon);
+                    if (isGameRunning) setTimeout(aiExecution, 600);
                 } else {
-                    const isMyTurn = (turn === config.icon);
-                    document.getElementById('statusLabel').innerText = isMyTurn ? "دورك الآن!" : "انتظر حركة الخصم...";
-                }
-            });
-        }
-
-        // 6. نظام الضغط والحركات
-        document.querySelectorAll('.grid-cell').forEach(cell => {
-            cell.onclick = () => {
-                const index = cell.dataset.index;
-                if (!isActive || gameState[index] !== "" || (turn !== config.icon)) return;
-
-                if (config.mode === 'AI') {
-                    playMove(index, config.icon);
-                    if (isActive) setTimeout(aiLogic, 700);
-                } else {
-                    // تحديث السيرفر في وضع الأونلاين
-                    gameState[index] = config.icon;
-                    const nextTurn = (config.icon === "X") ? "O" : "X";
-                    let winCheck = checkVictory();
-                    let finalWinner = "";
-                    if (winCheck === "Draw") finalWinner = "Draw";
-                    else if (winCheck) finalWinner = config.user;
-
-                    database.ref('rooms/' + currentRoom).update({
-                        board: gameState,
-                        turn: nextTurn,
-                        winner: finalWinner
+                    // إرسال الحركة للسيرفر
+                    currentBoard[idx] = userPrefs.icon;
+                    const next = (userPrefs.icon === "X" ? "O" : "X");
+                    let winResult = detectWinner();
+                    
+                    fbDB.ref('rooms/' + onlineRoomID).update({
+                        board: currentBoard,
+                        turn: next,
+                        winner: winResult ? (winResult === "Draw" ? "Draw" : userPrefs.name) : ""
                     });
                 }
             };
         });
 
-        function playMove(idx, player) {
-            gameState[idx] = player;
-            refreshBoard();
+        function applyMove(idx, player) {
+            currentBoard[idx] = player;
+            refreshUI();
             
-            let result = checkVictory();
+            let result = detectWinner();
             if (result) {
-                if (result === "Draw") finishGame("تعادل");
-                else finishGame(player === config.icon ? config.user : "الكمبيوتر 🤖");
+                if (result === "Draw") concludeGame("تعادل");
+                else concludeGame(player === userPrefs.icon ? userPrefs.name : "الكمبيوتر 🤖");
             }
-            turn = (player === "X") ? "O" : "X";
+            activeTurn = (player === "X") ? "O" : "X";
         }
 
-        // 7. ذكاء اصطناعي (AI) متطور
-        function aiLogic() {
-            if (!isActive) return;
-            let bestMove = -1;
+        // ذكاء اصطناعي احترافي (يمنع فوزك ويحاول الفوز)
+        function aiExecution() {
+            if (!isGameRunning) return;
             
-            // 1. محاولة الفوز الفوري
-            bestMove = findStrategicMove(config.aiIcon);
-            // 2. محاولة منع فوز اللاعب
-            if (bestMove === -1) bestMove = findStrategicMove(config.icon);
+            let bestMove = -1;
+            // 1. محاولة الفوز
+            bestMove = findBestSpot(userPrefs.enemyIcon);
+            // 2. الدفاع (منع اللاعب)
+            if (bestMove === -1) bestMove = findBestSpot(userPrefs.icon);
             // 3. اختيار عشوائي ذكي
             if (bestMove === -1) {
-                let available = gameState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+                let available = currentBoard.map((v, i) => v === "" ? i : null).filter(v => v !== null);
                 bestMove = available[Math.floor(Math.random() * available.length)];
             }
             
-            if (bestMove !== -1) playMove(bestMove, config.aiIcon);
+            if (bestMove !== -1) applyMove(bestMove, userPrefs.enemyIcon);
         }
 
-        function findStrategicMove(icon) {
-            const winLines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            for (let line of winLines) {
-                let count = 0; let emptyIdx = -1;
-                line.forEach(idx => {
-                    if (gameState[idx] === icon) count++;
-                    else if (gameState[idx] === "") emptyIdx = idx;
+        function findBestSpot(sym) {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let l of wins) {
+                let count = 0, empty = -1;
+                l.forEach(i => {
+                    if(currentBoard[i] === sym) count++;
+                    else if(currentBoard[i] === "") empty = i;
                 });
-                if (count === 2 && emptyIdx !== -1) return emptyIdx;
+                if(count === 2 && empty !== -1) return empty;
             }
             return -1;
         }
 
-        // 8. تحديث واجهة المستخدم
-        function refreshBoard() {
-            gameState.forEach((val, i) => {
-                const cell = document.querySelectorAll('.grid-cell')[i];
-                cell.innerText = val;
-                cell.className = 'grid-cell ' + (val ? val.toLowerCase() + '-mark' : '');
+        function refreshUI() {
+            currentBoard.forEach((v, i) => {
+                const cell = document.querySelectorAll('.grid-square')[i];
+                cell.innerText = v;
+                cell.className = `grid-square ${v ? v.toLowerCase()+'-player' : ''}`;
             });
         }
 
-        // 9. فحص شروط الفوز
-        function checkVictory() {
-            const winLines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            for (let line of winLines) {
-                if (gameState[line[0]] && gameState[line[0]] === gameState[line[1]] && gameState[line[0]] === gameState[line[2]])
-                    return gameState[line[0]];
+        function detectWinner() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let l of wins) {
+                if (currentBoard[l[0]] && currentBoard[l[0]] === currentBoard[l[1]] && currentBoard[l[0]] === currentBoard[l[2]])
+                    return currentBoard[l[0]];
             }
-            if (gameState.every(cell => cell !== "")) return "Draw";
-            return null;
+            return currentBoard.every(c => c !== "") ? "Draw" : null;
         }
 
-        // 10. إنهاء المعركة
-        function finishGame(winner) {
-            isActive = false;
-            const text = (winner === "تعادل" || winner === "Draw") ? "تعادل مشرف!" : "مبروك الفوز يا \n" + winner;
-            document.getElementById('finalMsgText').innerText = text;
-            document.getElementById('finalOverlay').style.display = 'flex';
+        function concludeGame(winner) {
+            isGameRunning = false;
+            const msg = (winner === "تعادل") ? "تعادل!" : "مبروك الفوز يا \n" + winner;
+            document.getElementById('winnerNameDisplay').innerText = msg;
+            document.getElementById('celebrationLayer').style.display = 'flex';
+        }
+
+        function startGlobalGame(type) {
+            onlineRoomID = document.getElementById('roomInputSecret').value;
+            if (!onlineRoomID) return alert("أدخل كود الروم!");
+            
+            document.getElementById('onlineUI').style.display = 'none';
+            if (type === 'host') {
+                fbDB.ref('rooms/' + onlineRoomID).set({ board: ["","","","","","","","",""], turn: "X", winner: "" });
+            }
+
+            fbDB.ref('rooms/' + onlineRoomID).on('value', snap => {
+                const d = snap.val(); if (!d) return;
+                currentBoard = d.board; activeTurn = d.turn; refreshUI();
+                if (d.winner) concludeGame(d.winner === "Draw" ? "تعادل" : d.winner);
+                else document.getElementById('statusText').innerText = (activeTurn === userPrefs.icon ? "دورك الآن" : "انتظر حركة الخصم...");
+            });
         }
     </script>
 </body>
